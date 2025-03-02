@@ -1,0 +1,44 @@
+# Ignore Python virtual environment
+venv/
+.venv/
+env/
+
+# Ignore IDE-specific files
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+
+# Ignore compiled Python files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Ignore MLFlow artifacts
+mlruns/
+mlartifacts/
+
+# Ignore dataset files (if applicable)
+data/
+*.csv
+*.json
+*.h5
+
+# Ignore logs
+*.log
+logs/
+
+# Ignore OS-specific files
+.DS_Store
+Thumbs.db
+
+# Ignore Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Ignore model files (if not tracked)
+*.model
+*.caffemodel
