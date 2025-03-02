@@ -1,4 +1,6 @@
-# import the required packages
+# import
+import mlflow
+import mlflow.tensorflow
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from tensorflow.keras.applications import MobileNetV2
 from tensorflow.keras.layers import AveragePooling2D
@@ -19,6 +21,11 @@ from imutils import paths
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+
+
+# initialize MLFlow
+mlflow.set_experiment("Face Mask Detection")
+mlflow.tensorflow.autolog()
 
 # initialize the initial learning rate
 INIT_LR = 1e-4
@@ -103,28 +110,37 @@ model.compile(loss="binary_crossentropy", optimizer=optimize,
 
 # train the head of the network
 print("Training Head Started...")
-H = model.fit(
-	augment.flow(trainX, trainY, batch_size=BS),
-	steps_per_epoch=len(trainX) // BS,
-	validation_data=(testX, testY),
-	validation_steps=len(testX) // BS,
-	epochs=EPOCHS)
+with mlflow.start_run():
+	H = model.fit(
+		augment.flow(trainX, trainY, batch_size=BS),
+		steps_per_epoch=len(trainX) // BS,
+		validation_data=(testX, testY),
+		validation_steps=len(testX) // BS,
+		epochs=EPOCHS)
 
-# make predictions on the testing set
-print("Network evaluation...")
-predIdxs = model.predict(testX, batch_size=BS)
+	# Evaluation
+	print("Network evaluation...")
+	predIdxs = model.predict(testX, batch_size=BS)
 
-# for each image in the testing set we need to find the index of the
-# label with corresponding largest predicted probability
-predIdxs = np.argmax(predIdxs, axis=1)
+	# for each image in the testing set we need to find the index of the
+	# label with corresponding largest predicted probability
+	predIdxs = np.argmax(predIdxs, axis=1)
 
-# show a formatted classification report
-print(classification_report(testY.argmax(axis=1), predIdxs,
-	target_names=lb.classes_))
+	# show a formatted classification report
+	print(classification_report(testY.argmax(axis=1), predIdxs,
+		target_names=lb.classes_))
 
-# serialize the model to disk
-print("saving mask model...")
-model.save("mask_detector.model", save_format="h5")
+
+	# Log metrics
+	mlflow.log_metric("accuracy", H.history["accuracy"][-1])
+	mlflow.log_metric("val_accuracy", H.history["val_accuracy"][-1])
+
+	# Save the model
+	print("saving mask model...")
+	model.save("mask_detector.model", save_format="h5")
+	mlflow.tensorflow.log_model(model, "mask_detector_model")
+
+
 
 # plot the training loss and accuracy
 N = EPOCHS
@@ -139,3 +155,4 @@ plt.xlabel("Epoch #")
 plt.ylabel("Loss/Accuracy")
 plt.legend(loc="lower left")
 plt.savefig("plot.png")
+mlflow.log_artifact("plot.png")
